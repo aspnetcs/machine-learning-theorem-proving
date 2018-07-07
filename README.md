@@ -1,2 +1,2 @@
 # machine-learning-theorem-proving
-Experiments using ML to interact with theorem provers (primarily Coq).
+Experiments using ML to interact with theorem provers (primarily Coq).  Ultimately, I'd like to apply ML to formal verification of smart contracts on decentralized compute engines (Ethereum, Cardano, etc.)
