@@ -106,11 +106,11 @@ def doAdd(coqString, resultDict, process, nbsr, debugList = []):
     
     
     if sum([1 if "Error" in i.decode('ASCII') else 0 for i in execResult if type(i) == bytes]) > 0:
-        print("Error...")
+        #print("Error...")
         cancelCommand = '(Cancel (%s))' % thisID
         cancelResult = output_from_command(process, nbsr, command=cancelCommand)
-        print("Cancel result: ")
-        print(cancelResult)
+        #print("Cancel result: ")
+        #print(cancelResult)
         return resultDict
     
     goalCommand = '(Query ((pp ((pp_format PpStr)))) Goals)'
@@ -143,7 +143,7 @@ def doAdd(coqString, resultDict, process, nbsr, debugList = []):
     if coqString in resultDict.keys():
         resultDict[coqString + "     duplicate: " + str(np.random.randint(0,1000))] = result
     else:
-        resultDict[coqString] = result
+        resultDict[coqString] = (thisID, result)
     return resultDict
     
 def doCommand(command, process, nbsr, resultDict={}):
