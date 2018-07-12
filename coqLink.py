@@ -2,6 +2,7 @@ from threading import Thread
 from queue import Queue, Empty
 from subprocess import Popen, PIPE
 from time import sleep
+import numpy as np
 
 class NonBlockingStreamReader:
 
@@ -141,7 +142,7 @@ def doAdd(coqString, resultDict, process, nbsr, debugList = []):
         result = [([j.strip() for j in i[0]], " ".join(i[1].split())) for i in result]
     
     if coqString in resultDict.keys():
-        resultDict[coqString + "     duplicate: " + str(np.random.randint(0,1000))] = result
+        resultDict[coqString + "     duplicate: " + str(np.random.randint(0,1000))] = (thisID, result)
     else:
         resultDict[coqString] = (thisID, result)
     return resultDict
@@ -154,3 +155,12 @@ def doCommand(command, process, nbsr, resultDict={}):
     else:
         resultDict[command] = output_from_command(process, nbsr, command=command)
     return resultDict
+
+
+def doCancel(idToCancel, process, nbsr):
+    command = '(Cancel(%s))' % str(idToCancel)
+    _= output_from_command(process, nbsr, command)
+
+
+
+
