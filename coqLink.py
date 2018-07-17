@@ -1,9 +1,11 @@
-from threading import Thread
-from queue import Queue, Empty
+#from threading import Thread
+#from queue import Queue, Empty
 from subprocess import Popen, PIPE
-from time import sleep
+#from time import sleep
 import numpy as np
+import pdb
 
+"""
 class NonBlockingStreamReader:
 
     def __init__(self, stream):
@@ -35,14 +37,14 @@ class NonBlockingStreamReader:
 
     def readline(self, timeout = None):
         try:
-            return self._q.get(block = timeout is not None,
-                    timeout = timeout)
+            return self._q.get(block = timeout is not None, timeout = timeout)
         except Empty:
             return None
 
 class UnexpectedEndOfStream(Exception): pass
 
-def output_from_command(process, nbsr, command=None):
+
+def output_from_command_orig(process, nbsr, command=None):
     if command:
         command = command.encode()
         process.stdin.write(command)
@@ -56,8 +58,25 @@ def output_from_command(process, nbsr, command=None):
             return outputList
         else:
             outputList.append(output)
+"""     
             
-            
+# BLOCKING STREAM READER (FOR SPEED)
+def output_from_command(process, command=None):
+    if command:
+        command = command.encode()
+        process.stdin.write(command)
+        process.stdin.flush()
+    outputList = []
+    
+    line = process.stdout.readline()
+    outputList.append(line)
+    while 'Completed' not in line.decode('ASCII') and 'ExplainErr.EvaluatedError' not in line.decode('ASCII'):
+        line = process.stdout.readline()
+        #print("readline: " + line.decode('ASCII'))
+        outputList.append(line)
+    return outputList
+    
+    
 def pretty(d, indent=0):
     for key, value in d.items():
         print('\t' * indent + str(key))
@@ -75,8 +94,10 @@ def findID(serapiString):
     thisID = serapiString[start + 6:end]
     return thisID
     
+
+def doAdd(coqString, resultDict, process, debugList = []):
     
-def doAdd(coqString, resultDict, process, nbsr, debugList = []):
+    #pretty(resultDict)
     
     if 10 in debugList:
         debugList = [0,1,2,3]
@@ -88,34 +109,36 @@ def doAdd(coqString, resultDict, process, nbsr, debugList = []):
         print(commandExtended)
         print()
         
-    addResult = output_from_command(process, nbsr, command=commandExtended)[-3].decode('ASCII')
-    
+    addResult = output_from_command(process, command=commandExtended)      
+        
     if 1 in debugList:
         print("Add command result: ")
         print(addResult)
         print()
         
-    thisID = findID(addResult)
+    thisID = findID(addResult[-2].decode('ASCII'))
     
     execCommand = '(Exec %s)' % thisID
-    execResult = output_from_command(process, nbsr, execCommand)
+    
+    if 2 in debugList:
+        print("Exec command: ")
+        print(execCommand)
+        print()
+        
+    execResult = output_from_command(process, execCommand)
     
     if 2 in debugList:
         print("Exec result: ")
         print(execResult)
         print()
     
-    
-    if sum([1 if "Error" in i.decode('ASCII') else 0 for i in execResult if type(i) == bytes]) > 0:
-        #print("Error...")
+    if sum([1 if "ExplainErr.EvaluatedError" in i.decode('ASCII') else 0 for i in execResult if type(i) == bytes]) > 0:
         cancelCommand = '(Cancel (%s))' % thisID
-        cancelResult = output_from_command(process, nbsr, command=cancelCommand)
-        #print("Cancel result: ")
-        #print(cancelResult)
+        cancelResult = output_from_command(process, command=cancelCommand)
         return resultDict
     
     goalCommand = '(Query ((pp ((pp_format PpStr)))) Goals)'
-    goalResult = output_from_command(process, nbsr, goalCommand)
+    goalResult = output_from_command(process, goalCommand)
     
     if 3 in debugList:
         print("Goal Query result: ")
@@ -147,19 +170,17 @@ def doAdd(coqString, resultDict, process, nbsr, debugList = []):
         resultDict[coqString] = (thisID, result)
     return resultDict
     
-def doCommand(command, process, nbsr, resultDict={}):
+def doCommand(command, process, resultDict={}):
     if command in resultDict.keys():
-        resultDict[command + "     duplicate: " + str(np.random.randint(0,1000))] = output_from_command(process, 
-                                                                                                        nbsr, 
-                                                                                                        command=command)
+        resultDict[command + "     duplicate: " + str(np.random.randint(0,1000))] = output_from_command(process, command=command)
     else:
-        resultDict[command] = output_from_command(process, nbsr, command=command)
+        resultDict[command] = output_from_command(process, command=command)
     return resultDict
 
 
-def doCancel(idToCancel, process, nbsr):
+def doCancel(idToCancel, process):
     command = '(Cancel(%s))' % str(idToCancel)
-    _= output_from_command(process, nbsr, command)
+    _= output_from_command(process, command)
 
 
 
